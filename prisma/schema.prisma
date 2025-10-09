@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  password           String
+  name               String
+  role               Role         @default(STUDENT)
+  classesTeaching    Class[]      @relation("TeacherClasses")
+  classesEnrolled    Class[]      @relation("ClassStudents")
+  attendanceRecords  Attendance[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model Class {
+  id          String      @id @default(cuid())
+  title       String
+  code        String      @unique
+  teacherId   String
+  teacher     User        @relation("TeacherClasses", fields: [teacherId], references: [id])
+  students    User[]      @relation("ClassStudents")
+  sessions    Session[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Session {
+  id         String       @id @default(cuid())
+  classId    String
+  class      Class        @relation(fields: [classId], references: [id])
+  startsAt   DateTime
+  endsAt     DateTime?
+  roomName   String       @unique
+  attendance Attendance[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Attendance {
+  id          String    @id @default(cuid())
+  sessionId   String
+  userId      String
+  session     Session   @relation(fields: [sessionId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  joinedAt    DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  durationSec Int       @default(0)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+}
